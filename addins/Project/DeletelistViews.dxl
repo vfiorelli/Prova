@@ -1,0 +1,122 @@
+//View listing delete in module
+
+
+/*
+
+  $Id: listViews_delete.dxl,v 1.0 2014/04/09 vf $
+  $Id: listViews_delete.dxl,v 1.2 2014/05/29 vf $
+
+*/
+
+//---------------------------------------------------
+//constants and definitions
+//---------------------------------------------------
+
+#include "addins/project/project_definitions.inc"
+
+#include "addins/project/attrcreate.inc"
+
+#include "addins/project/modulesetup.inc"
+
+//---------------------------------------------------
+
+
+
+
+/*************************
+* listModuleView
+*/
+
+Regexp nline = regexp2 ".*"
+
+
+void listModuleView(Module m,Object obj){
+	
+	string sViewList = ""
+	string nameView
+	string del_view_attr = ""
+	string tmp = ""
+	Skip delSkip  = create 
+	
+	Buffer bviewDel = create
+	Buffer bview_remaining = create
+  	
+  	del_view_attr = obj.MOD_VIEW_LIST_DEL""  //MOD_VIEW_LIST_DEL -> "Mod Views To Delete" 
+  	
+  	while (nline del_view_attr && del_view_attr!="" ){
+		  	
+	  	tmp = del_view_attr[match 0]
+		
+	  	del_view_attr = del_view_attr [end 0+2 :]
+		
+	  	if (tmp != ""){
+			put(delSkip,tmp,tmp)	
+		}
+		
+	  }
+  	
+  	
+  	for nameView in views m do {
+
+		
+		if (find(delSkip,nameView)){
+		
+			string s = delete(m,view nameView)
+			
+				bviewDel += nameView"\n"
+				
+				//print "elimino vista " nameView "\n"
+		}else{
+			
+			bview_remaining += nameView "\n"
+			}	
+  	}
+  	
+  	obj."Delete Views Log" = stringOf(bviewDel)
+  	obj.MOD_VIEW_LIST_ATTR = bview_remaining
+  	
+}
+
+/*************************
+* fillViewAttr
+*/
+
+void fillViewAttr(Module configMod){
+
+	Object obj
+  	Item itemRef
+  	Module toCheckMod
+  	string sProcess =""
+   
+  	for obj in configMod do{
+    	if(obj.MOD_PATH_ATTR "" != "") {
+      		itemRef = item (obj.MOD_PATH_ATTR "")
+      		
+      		sProcess = obj.MOD_DEL_VIEW ""
+		
+			//process only object where the Column "Mod Delete Views" = Yes
+			if(sProcess=="True"){
+				
+   
+      			if(itemRef != null) {   
+        			
+	      			toCheckMod = read(fullName itemRef, false)
+        				
+        				if(!null toCheckMod){
+	        				      				
+          					listModuleView(toCheckMod,obj)
+						}
+      			}
+  			}
+    	}
+  	}
+   
+  return 
+}
+
+
+//main
+
+Module m = current
+createViewListAttr(m)
+fillViewAttr(m)

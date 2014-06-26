@@ -1,0 +1,71 @@
+//View listing in module
+
+
+/*
+
+  $Id: listViews.dxl,v 1.2 2008/11/13 07:41:40 massimo.dag Exp $
+
+*/
+
+//---------------------------------------------------
+//constants and definitions
+//---------------------------------------------------
+
+#include "addins/project/project_definitions.inc"
+
+#include "addins/project/attrcreate.inc"
+
+#include "addins/project/modulesetup.inc"
+
+//---------------------------------------------------
+
+/*************************
+* listModuleView
+*/
+
+Buffer listModuleView(Module m){
+  string nameView
+  Buffer b = create
+  print name m "\n"
+  for nameView in views m do {
+    b += nameView "\n"
+  }
+  return b
+}
+
+
+/*************************
+* fillViewAttr
+*/
+
+void fillViewAttr(Module configMod){
+
+  Object obj
+  Item itemRef
+  Module toCheckMod
+  
+  for obj in configMod do{
+    if(obj.MOD_PATH_ATTR "" != "") {
+      itemRef = item (obj.MOD_PATH_ATTR "")
+      if(itemRef != null) {   
+        toCheckMod = read(fullName itemRef, false)
+        if(!null toCheckMod){
+	       // print "scrivo nel campo MOD_VIEW_LIST_ATTR "
+          obj.MOD_VIEW_LIST_ATTR = stringOf(listModuleView(toCheckMod))
+        } //else {
+          //print "null: " obj.MOD_PATH_ATTR "\n"
+        //}
+      }
+    }
+    
+  }
+   
+  return 
+}
+
+
+//main
+
+Module m = current
+createViewListAttr(m)
+fillViewAttr(m)

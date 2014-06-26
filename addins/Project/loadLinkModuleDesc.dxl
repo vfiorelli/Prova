@@ -1,0 +1,128 @@
+//load LinkModuleDes
+/*
+Modified for use in project tools
+
+  vf 16/06/2014  v 1.0 
+  
+// sul modulo di configurazione è stato aggiunto l'attribute "Mod Linksets"<string   -- MOD_LINKSETS
+  
+*/
+
+
+#include "addins/project/project_definitions.inc"
+
+/*************************
+* fillArr
+*/
+void fillArr(string sNameItem,string sNameLink,string sSourceName,string sTargetName){
+	
+	put(ArrItem, sNameItem,0, xArrItem)  //"fullName itemRef"
+	put(ArrItem, sNameLink,1, xArrItem)  //"getName(linkModD) " 
+	put(ArrItem, sSourceName,2, xArrItem)  //"getSourceName(linkModD)"
+	put(ArrItem, sTargetName,3, xArrItem) //"getTargetName(linkModD)"
+
+
+}
+
+
+/*************************
+* checkFolder
+la funzione verifica che il folder passato sia stato o meno esaminato 
+nel caso in cui sia la prima volta che viene elaborato si verifica la presenza
+di LinkModuleDescriptor se sono presenti si salvano nella skip ItemSkip e ArrItem
+*/
+
+void checkFolder(Folder f,Item itemRef){
+
+	LinkModuleDescriptor linkModD
+	
+	//controllo se il folder è presente nella skip se presente ho già 
+	//elaborato il folder quindi lo posso saltare
+	if (!find(FolderSkip,fullName f)){	
+		
+		put(FolderSkip, fullName f, name f)
+		
+		//se sono all'interno del ciclo for significa che sono presenti dei 
+		//LinkModuleDescriptor  per il folder in esame
+		for linkModD in f do {
+		   		
+			if (fullName itemRef==getSourceName(linkModD)){
+				   				
+   				put(ItemSkip, fullName itemRef, fullName itemRef)
+   				fillArr(fullName itemRef,getName(linkModD),getSourceName(linkModD),getTargetName(linkModD))
+			
+			}else{
+				   				
+				put(ItemSkip, getSourceName(linkModD), getSourceName(linkModD))
+				fillArr(getSourceName(linkModD),getName(linkModD),getSourceName(linkModD),getTargetName(linkModD))
+				
+			}
+			xArrItem ++
+		}
+			
+   	}
+   	
+
+}
+
+/*************************
+* readLinkModuleDes
+*/
+
+void readLinkModuleDes(Module configMod){
+	
+	Object obj
+	Folder f
+	Item itemRef
+	Buffer breturn = create	
+	
+	for obj in configMod do{
+	
+		itemRef = item (obj.MOD_PATH_ATTR "")
+		
+		if(!null itemRef){	
+
+			f = getParentFolder(itemRef)
+				
+			if(!null f){
+		
+				//richiamo il check folder solamente per i Formal
+				//perchè per questi dovrà essere valorizzato il MOD_LINKSETS
+				if (obj.MOD_TYPE_ATTR""=="Formal"){
+										
+					checkFolder(f,itemRef)
+					
+				}
+			}		
+		}
+	}
+	
+	// riciclo sul modulo di conf per valorizzare il campo MOD_LINKSETS
+	//tramite la skip ItemSkipe e l'array xArrItem
+	for obj in configMod do{
+	
+		if (find(ItemSkip,obj.MOD_PATH_ATTR "")){
+						
+			breturn = "" 
+			
+			for(x = 0; x<xArrItem ; x++){	
+			
+				if ((string get(ArrItem,0,x))==obj.MOD_PATH_ATTR ""){
+					breturn +=(string get(ArrItem,1,x))">"(string get(ArrItem,3,x))"\n"
+				}
+			}
+			obj.MOD_LINKSETS = breturn	
+		}
+	}
+
+	
+	delete ItemSkip
+	delete FolderSkip	
+	
+}
+
+
+//*** main 
+Module m = current
+
+readLinkModuleDes(m)

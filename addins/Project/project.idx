@@ -1,0 +1,24 @@
+explorer e _ Explore Current project
+explorer_dir d _ Explore Current Folder
+----
+listViews v _ Fill View list attribute
+DeletelistViews w _ Delete View
+readOutgoingLinks l _ Fill Outgoing Link Attribute
+----
+readOrigBaselines b _ Read Baselines
+CreateBL n _ Create Baselines
+----
+loadLinkModuleDesc m _ Read Linksets
+ModifyLinkModDesc k _ Modify Linksets
+----
+checkAccessRights r _ Save Module Access Lists
+setAccessRights s _ Restore Module Access Lists
+reset_to_inherit x _ Set all access to Inherit
+----
+checkDxlPaths c _ Check dxl in views
+dxlview v _ Check dxl in current view
+uniqueIdToName u _ Return unique ID full name 
+----
+archive a _ Archive Modules in View
+----
+setattr s _ Set Module attributes

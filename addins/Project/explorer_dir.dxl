@@ -1,0 +1,163 @@
+//Project explorer
+
+/*
+
+  $Id: explorer_dir.dxl,v 1.1 2010/09/14 08:46:33 massimo.dag Exp $
+
+*/
+
+pragma runLim, 0
+
+//---------------------------------------------------
+//constants and definitions
+//---------------------------------------------------
+
+#include "addins/project/object_caching.inc"
+
+
+#include "addins/project/project_definitions.inc"
+
+#include "addins/project/attrcreate.inc"
+
+#include "addins/project/modulesetup.inc"
+
+#include "addins/project/explorer_tools.inc"
+
+//---------------------------------------------------
+
+
+
+/****************
+* buildProjectStructure
+*/
+
+int  buildFolderStructure(Module confModule,Folder curFold, bool inc_sub){
+  Skip folderSkip = createString
+  Item itPro
+
+  
+  crObjAttribute(MOD_REF_ATTR, "String")
+  crObjAttribute(MODULEDESCRIPT, "Text")
+
+
+  //Intrinsically simpler than the project explorer
+  //here we just want a list of modules contained in the current folder      
+  
+  
+  //Putting the first level corresponding to the folder
+  put(folderSkip, fullName curFold, name curFold)
+
+/* DO NOT NEED HERE    
+  //Browse folders and projects contained
+  for itPro in curFold do {
+    
+    if(type itPro == "Folder"){
+       put(folderSkip, fullName itPro, name itPro)
+       
+    } else if(inc_subproj && type itPro == "Project"){
+       put(folderSkip, fullName itPro, name itPro)
+    }
+  }
+*/
+    
+  Array hierArr = create(1,1)
+  int hierIndex = 0
+  
+  //Populating the array
+  parseLevels(folderSkip, hierArr, hierIndex)
+  
+  //Writing the structure on module
+  strucSkip = buildStructure(confModule, hierArr, hierIndex, fullName curFold)
+  
+  //no need for folder array and folderSkip anymore...
+  delete folderSkip
+  delete hierArr
+
+
+ 
+  //-----------------------------------
+  //B.Completion by adding Formal (and Links)
+  //-----------------------------------
+  int countObj = 0
+  string parentName, moduName
+  Object obj
+  Skip reorder = createString
+  
+  
+  //reordering formal module names
+  for itPro in curFold do {
+    if(type itPro == "Formal"){
+      put(reorder, fullName itPro, itPro)
+    }
+  }
+  
+  //Now we can create the objects
+  for itPro in reorder do {      
+	 
+		if(fullName itPro == fullName confModule){
+			continue
+		}
+	  
+    parentName = fullName getParentFolder itPro
+    moduName = fullName itPro
+    
+    if(find(strucSkip, parentName, obj)){
+       
+      obj = create last below obj
+      //fill needed attributes
+      obj.MOD_NAME_ATTR = name itPro
+      obj.MOD_PATH_ATTR = moduName
+      obj.MOD_REF_ATTR = uniqueID itPro
+      obj.MOD_TYPE_ATTR = (type itPro)
+      obj.MODULEDESCRIPT = description itPro
+      
+      countObj++
+       
+    } else {
+     print "Couldn't locate parent folder for reference: " moduName"\n"
+    }
+    
+  }
+  
+  delete reorder
+  return countObj
+  
+}
+
+
+/******************************************************************************
+* doProcess
+* 
+* core function
+*
+*/
+bool doProcess(Module confModule){
+  
+  
+  Folder foldCurr = current
+  if(null foldCurr){
+    return false
+  }
+  
+  setupConfiguration()
+  
+  buildFolderStructure(confModule, foldCurr, true)
+  
+  return true
+}
+
+
+
+//Main
+
+Module m = current
+
+
+if(null m){
+  ack "No current module"
+  halt
+}
+
+doProcess(m)
+
+

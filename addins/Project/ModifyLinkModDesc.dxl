@@ -1,0 +1,150 @@
+//Modify LinkModuleDes
+/*
+Modified for use in project tools
+
+  vf 17/06/2014  v 1.0 
+  
+sul modulo di configurazione viene utilizzato l'attribute "Mod Linksets"<string   -- MOD_LINKSETS
+itrodotto appositamente per i LinkModDesc
+  
+*/
+
+
+#include "addins/project/project_definitions.inc"
+
+Skip ItemSkipread = create 
+Regexp sep = regexp "(.*)>(.*)"
+Regexp nline = regexp ".*"
+Regexp re = regexp2 "/"
+
+
+/*************************
+* transNameLink
+la funzione mi serve per recuparare solo il nome del link module 
+*/
+
+string transNameTarget(string stok){
+	
+	string tok
+	int sm = 0
+	Buffer b = create 
+	
+	b = stok
+	
+	while(search(re, b, sm)){
+		tok = b[sm:sm+start 0-1]
+  		sm = sm + end(0)+ 1 			
+	}
+	return tok
+}	
+/*************************
+* transNameLink
+la funzione mi serve a capire se nel link module si trova nella root del prog
+e per recuparare solo il nome del link module 
+*/
+
+string transNameLink(string stok){
+	
+	string tok
+	int sm = 0
+	int y = 0
+	Buffer b = create 
+	
+	b = stok
+	
+	while(search(re, b, sm)){
+		y++
+		tok = b[sm:sm+start 0-1]
+  		sm = sm + end(0)+ 1		
+	}
+	
+	if (y>3){
+		tok = tok"(*)"
+	}	
+		return tok
+}
+
+
+/*************************
+* vtok
+*/
+
+void vtok(string sMLink){
+	string sLinkmod = ""
+	string sTaret = ""
+	string token =""
+	
+	print "*************************************************\n"
+//	print "sModLink "sMLink"\n"
+	
+	while(nline sMLink && sMLink != null){
+   		
+    	token = sMLink[match 0]
+    	sMLink = sMLink[end 0 + 2: ]
+    	
+    //	print "---------- \n"
+    //	print "token : " token "\n"
+  	  	
+		sep token
+		
+		sLinkmod = token[match 1]
+  	  	sTaret = token[match 2]
+  	  	 	
+  	  	print "sLinkmod: " sLinkmod"\n"
+  	  	print "sTaret: " sTaret"\n"
+  	  	print "----- tras ---\n"
+  	  	print ": "transNameLink(sLinkmod"/")
+  	  	print "\n"
+  	  	print ": "transNameTarget(sTaret"/")
+  	  	print "\n"
+  	  	
+	  }
+	//  print "-----\n"
+					
+}
+
+/*************************
+* readLinkModuleDes
+*/
+
+void readLinkModuleDes(Module configMod){
+	
+	Object obj
+	Folder f
+	Item itemRef
+	
+	string sModLink = ""
+
+	for obj in configMod do{
+	
+		itemRef = item (obj.MOD_PATH_ATTR "")
+		
+		if(!null itemRef){	
+
+			f = getParentFolder(itemRef)
+				
+			if(!null f){
+				
+				//richiamo il check folder solamente per i Formal
+				//perchè solo per questi è valorizzato il MOD_LINKSETS
+				if (obj.MOD_TYPE_ATTR""=="Formal"){
+					
+					if (obj.MOD_LINKSETS""!=""){
+						
+						sModLink = obj.MOD_LINKSETS""
+					
+						vtok(sModLink)
+	
+					}
+				}
+			}		
+		}
+	}
+	
+}
+
+
+//*** main 
+Module m = current
+
+readLinkModuleDes(m)

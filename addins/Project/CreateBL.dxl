@@ -1,0 +1,67 @@
+//Create new Baseline
+/*
+Modified for use in project tools
+
+  vf 04/06/2014  v 1.0 
+  
+*/
+
+
+
+#include "addins/project/project_definitions.inc"
+
+
+/*************************
+* CreationBl
+*/
+
+void CreationBl(Module configMod){
+
+	Object obj
+	Item itemRef
+	Module mProcess 
+
+	if (confirm "Create new Baselines?"){
+
+		for obj in configMod do{
+			
+			itemRef = item (obj.MOD_PATH_ATTR "")
+			
+			 if(!null itemRef){
+				 
+				if(fullName itemRef == fullName configMod){
+					infoBox("Operation not execute for configuration Module")
+					continue
+				}
+				
+				if(obj.NEW_SL_SAFETY_CHECK ""=="True"){
+					
+					if(itemRef != null) {   
+						
+						mProcess = edit(fullName itemRef, false)
+						
+						if (obj.Type_Bl "" == "Major"){
+							
+		    	    		create(mProcess,nextMajor(obj.NEW_BL_SUFFIX ""),obj.NEW_BL_DESC"" ) 
+    	    	
+		    	    	}else{
+				        	
+				        	create(mProcess,nextMinor(obj.NEW_BL_SUFFIX ""), obj.NEW_BL_DESC"")	
+    	    	
+				        } 
+    	    			
+					}
+				}
+			}	
+		}
+		
+		infoBox("Operation completed")
+	}
+	
+}
+
+//**** main
+
+Module m = current
+CreationBl(m)
+refresh(m)

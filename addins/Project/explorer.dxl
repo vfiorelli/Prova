@@ -1,0 +1,301 @@
+//Project explorer
+
+/*
+
+  $Id: explorer.dxl,v 1.3 2009/06/15 17:03:42 massimo.dag Exp $
+  v 2.0 2014/03/26 vf
+  v 2.1 2014/06/10 vf
+
+*/
+
+pragma runLim, 0
+
+//---------------------------------------------------
+//constants and definitions
+//---------------------------------------------------
+
+#include "addins/project/object_caching.inc"
+
+#include "addins/project/project_definitions.inc"
+
+#include "addins/project/attrcreate.inc"
+
+#include "addins/project/modulesetup.inc"
+
+#include "addins/project/explorer_mod.inc"
+
+#include "addins/project/explorer_tools.inc"
+
+//---------------------------------------------------
+
+void createExplorer (Module &confModule,Item &itPro,Project &curProj,bool &inc_subproj, Skip &folderSkip,Skip &strucSkip){
+//
+
+
+  	//-----------------------------------
+  	//A.Folder - Chapter preparation
+  	//-----------------------------------
+  
+  	//Putting the first level corresponding to the project
+  	put(folderSkip, fullName curProj, name curProj)
+  
+  	//Browse folders and projects contained
+  	for itPro in curProj do {
+  	  
+  	  if(type itPro == "Folder"){
+  	     put(folderSkip, fullName itPro, name itPro)
+  	     
+  	  } else if(inc_subproj && type itPro == "Project"){
+  	     put(folderSkip, fullName itPro, name itPro)
+  	  }
+  	}
+  
+  	Array hierArr = create(1,1)
+  	int hierIndex = 0
+  
+  	//Populating the array
+  	parseLevels(folderSkip, hierArr, hierIndex)
+  
+  	//Writing the structure on module
+  	strucSkip = buildStructure(confModule, hierArr, hierIndex, fullName curProj)
+ 
+  
+  	//no need for folder array and folderSkip anymore...
+  	delete folderSkip
+  	delete hierArr
+  	
+}
+/****************
+* buildProjectStructure
+*/
+
+int  buildProjectStructure(Module confModule,Project curProj, bool inc_subproj){
+  
+	//vf 
+  	string sUid = ""
+  	string sUIDPrev = ""	
+	
+  	Skip folderSkip = createString
+  	Skip strucSkip
+  	Item itPro
+	
+  	
+  	crObjAttribute(MOD_REF_ATTR, "String")
+  	crObjAttribute(MODULEDESCRIPT, "Text")
+  	
+  	
+  //createExplorer(confModule,itPro,curProj, inc_subproj,folderSkip,strucSkip)
+				
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  	//-----------------------------------
+  	//A.Folder - Chapter preparation
+  	//-----------------------------------
+  
+  	//Putting the first level corresponding to the project
+  	put(folderSkip, fullName curProj, name curProj)
+  
+  	//Browse folders and projects contained
+  	for itPro in curProj do {
+  	  
+  	  if(type itPro == "Folder"){
+  	     put(folderSkip, fullName itPro, name itPro)
+  	     
+  	  } else if(inc_subproj && type itPro == "Project"){
+  	     put(folderSkip, fullName itPro, name itPro)
+  	  }
+  	}
+  
+  	Array hierArr = create(1,1)
+  	int hierIndex = 0
+  
+  	//Populating the array
+  	parseLevels(folderSkip, hierArr, hierIndex)
+  
+  	//Writing the structure on module
+  	strucSkip = buildStructure(confModule, hierArr, hierIndex, fullName curProj)
+ 
+  
+  	//no need for folder array and folderSkip anymore...
+  	delete folderSkip
+  	//**** delete hierArr
+  	
+  	
+ //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  	//-----------------------------------
+  	//B.Completion by adding Formal (and Links)
+  	//-----------------------------------
+  	int countObj = 0
+  	string parentName, moduName
+  	Object obj
+  	Skip reorder = createString
+  
+  	//reordering formal module names
+  	for itPro in curProj do {
+		if(type itPro == "Formal"){
+			put(reorder, fullName itPro, itPro)
+		}
+  	}
+     	
+	// valorizzo la skip con tutti i project,folder e formal già caricati sul modulo
+	fillSkipconf(SkipModConf,curProj)
+	
+	
+	//verifico quali og caricati dal modulo non sono più presenti 
+  	for(x = 0; x<getArraySizeRow(ArrModConf) ; x++){
+	  	
+		sUid = (string get(ArrModConf,1,x))
+		
+		if (!find(SkipModConf,sUid)){
+		
+			put(SkipUIDDel,sUid,sUid)
+		}			
+	}
+	
+	/// creo fun per eliminare gli elementi delle skip SkipUIDDel
+	DelObjMod(confModule)
+	
+  
+  //Now we can create the objects  
+  for itPro in reorder do {
+	  
+	bnewObj = true      
+    //TODO to be put an exception for the case of module already indexed
+    parentName = fullName getParentFolder itPro
+    moduName = fullName itPro
+  
+  
+    //sposto la if perchè altrimenti quando sposto una cartella mi modifica il path solo del folder e non del modulo
+    if(find(strucSkip, parentName, obj)){
+  
+		//se l'array è popolato significa che il modulo era già valorizzato
+		if (getArraySizeRow(ArrModConf)>0){	
+	
+			//Modobj(itPro,confModule,moduName)
+			
+			//controllo se uniqueID già esiste
+			if  (Find_Unique_ID(uniqueID itPro,ArrModConf)== true){
+				bnewObj = false	
+				
+	  			//recupero obj
+	  			obj = ObjRecover(uniqueID itPro,confModule)
+	  			
+	  			//verifico se dati modificati		
+      			string sMOD_NAME_ATTR = obj.MOD_NAME_ATTR""
+      			string sMOD_PATH_ATTR = obj.MOD_PATH_ATTR""
+      			string sMOD_TYPE_ATTR = obj.MOD_TYPE_ATTR""
+      			string sMODULEDESCRIPT = obj.MODULEDESCRIPT""
+      			
+	  			if (sMOD_NAME_ATTR != name itPro){
+		  			obj.MOD_NAME_ATTR = name itPro
+		  		}
+		  			  		
+      			if (sMOD_PATH_ATTR != moduName){
+      				obj.MOD_PATH_ATTR = moduName
+      				
+      				int ix = 0 
+      				Object objn =  FoundPos (itPro,ix)
+      				
+      				//*** se ix dopo la creazione dell'objn è 0
+      				//*** l'obj deve esere figlio di objn
+      				if (ix == 0){
+	      				move(obj,below objn)
+	      			}else{
+		      			move(obj, objn)
+		      		}
+      				
+	      		}
+      			if (sMOD_TYPE_ATTR != (type itPro)){
+	      			obj.MOD_TYPE_ATTR = (type itPro)
+  				}
+	      		if(sMODULEDESCRIPT != description itPro){
+		    	  	obj.MODULEDESCRIPT = description itPro
+  				}
+  				
+	  		} 
+	  			
+		}
+
+		//inserisco il nuovo elemento
+		if (bnewObj==true){
+      
+	  		obj = create last below obj
+      		
+	  		//fill needed attributes
+      		obj.MOD_NAME_ATTR = name itPro
+      		obj.MOD_PATH_ATTR = moduName
+      		obj.MOD_REF_ATTR = uniqueID itPro
+      		obj.MOD_TYPE_ATTR = (type itPro)
+      		obj.MODULEDESCRIPT = description itPro
+      	
+      		countObj++
+  		}
+  		
+  		//la variabile serve per spostare gli obj dove necessario
+  		sUIDPrev = obj.MOD_REF_ATTR""
+  			
+	} else {
+	
+		if  (Find_Unique_ID(uniqueID itPro,ArrModConf)== true){
+			//print "trovato con Find_Unique_ID \n"
+			Modobj(itPro,confModule,moduName)
+		}	
+		
+    }
+  }
+  
+  // 	createExplorer(confModule,itPro,curProj, inc_subproj,folderSkip,strucSkip)
+  
+  delete reorder
+  
+  return countObj
+   
+}
+
+
+/******************************************************************************
+* doProcess
+* 
+* core function
+*
+*/
+bool doProcess(Module confModule, string projName){
+  
+  Project prjCurr = project(projName)
+  
+  if(null prjCurr){
+    return false
+  }
+  
+  setupConfiguration()
+    
+  buildProjectStructure(confModule, prjCurr, true)
+  
+  return true
+}
+
+
+
+//Main
+
+Module m = current
+Project p = current
+string projName = fullName p
+
+
+if(null m){
+  ack "No current module"
+  halt
+}
+if(!confirm "Going to create project structure for '" projName "'. OK to proceed?"){
+  ack "aborted by user"
+  halt
+}
+
+FillArrayConfMod(m)
+
+doProcess(m, projName)
+refresh(m)
+
+

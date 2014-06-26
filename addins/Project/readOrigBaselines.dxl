@@ -1,0 +1,147 @@
+//Baseline information agent
+/*
+Modified for use in project tools
+
+  $Id: readOrigBaselines.dxl,v 1.5 2009/06/15 17:03:42 massimo.dag Exp $
+  
+*/
+
+
+
+
+pragma runLim, 1000000
+
+//---------------------------------------------------
+//constants and definitions
+//---------------------------------------------------
+
+#include "addins/project/object_caching.inc"
+
+#include "addins/project/project_definitions.inc"
+
+#include "addins/project/attrcreate.inc"
+
+//---------------------------------------------------
+
+
+const string PREFIX = "Mod Prefix"
+
+void doProcess(DB x){
+  
+  Module modConf = current
+  Module modToTest
+  Object oCurr
+  Baseline lastBase 
+  string modToTestName
+  bool checkBaseline = false
+  
+  History h 
+  
+  Buffer b = create
+  
+  crObjAttribute(MOD_REF_ATTR, "String")
+  crObjAttribute(DOC_REF_ATTR, "String")
+  crObjAttribute(MODULEDESCRIPT, "Text")
+  crObjAttribute(LASTBASENO, "Text")
+  crObjAttribute(LASTBASEISSUE, "Text")
+  crObjAttribute(LASTBASEDESCR, "Text")
+  crObjAttribute(LASTBASEUSER, "Text")
+  crObjAttribute(LASTBASEDATE, "Date")
+  crObjAttribute(MODULELASTMODON, "Text")
+  crObjAttribute(MODULELASTMODBY, "Text")
+  crObjAttribute(PREFIX, "Text")
+  
+  
+  if(confirm "Do you want to check baselines as well (longer)?"){
+    checkBaseline = true
+  }
+
+    
+  int n=0, totn
+  for oCurr in modConf do {
+    n++
+  }
+  
+  totn = n
+    
+  //starting progress bar
+  progressStart(x, "Analyzing...", "Starting..",  n) 
+  n=0
+  
+  for oCurr in modConf do {
+	  
+    
+    modToTestName = oCurr.MOD_PATH_ATTR
+    
+        
+    if(modToTestName == fullName modConf){
+		infoBox("Operation not execute for configuration Module")
+		continue
+	}
+    
+    modToTest = read(modToTestName, false)
+    
+    if (!null modToTest){
+      oCurr.MODULEDESCRIPT = description(modToTest)
+      oCurr.MODULELASTMODON = modToTest."Last Modified On" ""
+      oCurr.MODULELASTMODBY = modToTest."Last Modified By" ""
+      oCurr.MOD_REF_ATTR = uniqueID modToTest
+      oCurr.PREFIX = modToTest."Prefix" ""
+      
+      if(exists attribute "GAL Doc Id"){
+        oCurr.DOC_REF_ATTR = modToTest."GAL Doc Id" ""
+      }
+      
+      if(checkBaseline){
+        lastBase=getMostRecentBaseline(modToTest)
+        if(!null lastBase) {
+              oCurr.LASTBASENO    = (major lastBase)"."(minor lastBase)""
+              oCurr.LASTBASEISSUE = suffix lastBase
+              oCurr.LASTBASEDESCR = annotation lastBase
+              oCurr.LASTBASEUSER  = user lastBase
+              oCurr.LASTBASEDATE  = dateOf lastBase ""
+        } else {
+              oCurr.LASTBASENO    = "NOBASELINE"
+              oCurr.LASTBASEISSUE = "n/a"
+              oCurr.LASTBASEDESCR = "n/a"
+              oCurr.LASTBASEUSER  = "n/a"
+              oCurr.LASTBASEDATE  = ""
+        }
+      }
+      
+      //set Progress bar message
+      curMessage = "(" n "/" totn ") "
+      
+      progressMessage curMessage modToTestName
+      progressStep ++n      
+  
+      
+      close(modToTest, false)
+      
+      //Progress bar: cancel process
+      if (progressCancelled) {
+          if (confirm("Stop analyze?")) {
+              delete b
+              progressStop
+              return 
+          }
+      }      
+      
+    } else {
+      print "module not found: " modToTestName "\n"
+    }
+  }
+  
+  delete b
+  progressStop
+  infoBox("Operation completed")
+  hide x
+}
+
+
+DB uiDB = create "Baseline report" 
+label(uiDB, "Analyze baselines for listed modules") 
+
+
+apply(uiDB, "Execute", doProcess) 
+show uiDB 
